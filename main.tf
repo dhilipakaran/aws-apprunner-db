@@ -2,7 +2,6 @@ provider "aws" {
   region = var.region
 }
 
-# Get default VPC and subnets
 data "aws_vpc" "default" {
   default = true
 }
@@ -14,7 +13,6 @@ data "aws_subnets" "default" {
   }
 }
 
-# RDS Security Group
 resource "aws_security_group" "rds_sg" {
   name   = "rds-allow-apprunner"
   vpc_id = data.aws_vpc.default.id
@@ -34,7 +32,6 @@ resource "aws_security_group" "rds_sg" {
   }
 }
 
-# RDS Database Instance
 resource "aws_db_instance" "app_db" {
   identifier               = var.db_identifier
   engine                   = "postgres"
@@ -50,7 +47,6 @@ resource "aws_db_instance" "app_db" {
   vpc_security_group_ids   = [aws_security_group.rds_sg.id]
 }
 
-# IAM Role for App Runner ECR access
 resource "aws_iam_role" "apprunner_ecr_access" {
   name = "${var.app_name}-ecr-access-role"
 
@@ -68,20 +64,17 @@ resource "aws_iam_role" "apprunner_ecr_access" {
   })
 }
 
-# IAM Policy Attachment
 resource "aws_iam_role_policy_attachment" "ecr_access" {
   role       = aws_iam_role.apprunner_ecr_access.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# App Runner VPC Connector
 resource "aws_apprunner_vpc_connector" "app_vpc_connector" {
   vpc_connector_name = "${var.app_name}-vpc-connector"
   subnets            = data.aws_subnets.default.ids
   security_groups    = [aws_security_group.rds_sg.id]
 }
 
-# App Runner Service
 resource "aws_apprunner_service" "app_service" {
   service_name = var.app_name
 
